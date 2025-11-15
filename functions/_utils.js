@@ -3,11 +3,6 @@
 // ============================================================================
 
 // DB + R2 bindings come from wrangler.toml
-// Example bindings:
-//   DB = D1 database
-//   FILES = R2 bucket
-//   MASTER_PASSWORD as a secret
-
 export function createContext(env) {
   return {
     db: env.DB,
@@ -17,38 +12,28 @@ export function createContext(env) {
 }
 
 // ============================================================================
-//  SQL helper (auto-throws on errors, returns rows cleanly)
+//  SQL helpers
 // ============================================================================
 
 export async function sql(db, query, params = []) {
   const result = await db.prepare(query).bind(...params).all();
-
-  if (result.error) {
-    console.error("SQL ERROR:", query, params, result.error);
-    throw new Error(result.error);
-  }
+  if (result.error) throw new Error(result.error);
   return result.results;
 }
 
-// ============================================================================
-//  SQL helper (single row)
-// ============================================================================
-
 export async function sqlOne(db, query, params = []) {
   const result = await db.prepare(query).bind(...params).first();
-
-  if (!result) return null;
-  return result;
+  return result || null;
 }
 
 // ============================================================================
-//  JSON response helpers
+//  JSON helpers
 // ============================================================================
 
 export function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json" }
   });
 }
 
@@ -57,7 +42,7 @@ export function error(message, status = 400) {
 }
 
 // ============================================================================
-//  Require Bearer token authentication
+//  Auth
 // ============================================================================
 
 export function requireAuth(request, ctx) {
@@ -75,7 +60,7 @@ export function requireAuth(request, ctx) {
 }
 
 // ============================================================================
-//  Handle file uploads (R2 storage)
+//  R2 Storage helpers
 // ============================================================================
 
 export async function saveFileToR2(r2, key, fileBlob) {
@@ -94,7 +79,7 @@ export async function deleteFileFromR2(r2, key) {
 }
 
 // ============================================================================
-//  Generate random API keys for chats
+//  Chat API Keys
 // ============================================================================
 
 export function generateKey() {
@@ -103,3 +88,38 @@ export function generateKey() {
   return [...arr].map(b => b.toString(16).padStart(2, "0")).join("");
 }
 
+// ============================================================================
+//  NEW REQUIRED UTILITIES
+// ============================================================================
+
+// Convert ArrayBuffer → Base64
+export function arrayBufferToBase64(buffer) {
+  let binary = "";
+  const bytes = new Uint8Array(buffer);
+  const len = bytes.byteLength;
+  for (let i = 0; i < len; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary);
+}
+
+// Extract metadata for attachments from DB results
+export function getAttachmentsMeta(rows) {
+  return rows.map(r => ({
+    id: r.id,
+    filename: r.filename,
+    mimetype: r.mimetype,
+    size: r.size,
+    key: r.r2_key
+  }));
+}
+
+// Load single setting value (for “external API mode” etc.)
+export async function getSetting(db, key) {
+  const row = await sqlOne(
+    db,
+    "SELECT value FROM settings WHERE key = ?",
+    [key]
+  );
+  return row ? row.value : null;
+}
