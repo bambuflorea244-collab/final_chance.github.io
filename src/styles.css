@@ -1,1 +1,396 @@
-aa
+/* ======================================================================
+   Global Theme
+   ====================================================================== */
+
+:root {
+  --bg: #110d11;
+  --bg-light: #1b161b;
+  --bg-lighter: #241f24;
+  --bg-dark: #0c090c;
+
+  --text: #f2e7f5;
+  --text-subtle: #d6c6db;
+  --text-dim: #b7a7bd;
+
+  --border: #3c343d;
+  --border-subtle: #2c252e;
+
+  --primary: #8f6bff;
+  --primary-hover: #7b51ff;
+
+  --danger: #ff4f7a;
+  --danger-hover: #e84168;
+
+  --radius: 14px;
+  --radius-lg: 20px;
+}
+
+/* ======================================================================
+   Base
+   ====================================================================== */
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, sans-serif;
+  font-size: 15px;
+}
+
+/* Scrollbars */
+::-webkit-scrollbar {
+  width: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: #3d3440;
+  border-radius: 5px;
+}
+
+button {
+  cursor: pointer;
+}
+
+input,
+textarea {
+  background: var(--bg-dark);
+  border: 1px solid var(--border-subtle);
+  color: var(--text);
+  padding: 8px 10px;
+  border-radius: var(--radius);
+}
+
+/* ======================================================================
+   Layout
+   ====================================================================== */
+
+.app-shell {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* ---------------- Sidebar ---------------- */
+
+.sidebar {
+  width: 280px;
+  background: var(--bg-light);
+  border-right: 1px solid var(--border);
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-header {
+  margin-bottom: 20px;
+}
+
+.brand-title {
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.brand-subtitle {
+  font-size: 12px;
+  color: var(--text-subtle);
+}
+
+.chip {
+  margin-top: 8px;
+  background: var(--primary);
+  color: white;
+  padding: 2px 8px;
+  border-radius: var(--radius);
+  font-size: 12px;
+  display: inline-block;
+}
+
+.chat-list {
+  flex-grow: 1;
+  overflow-y: auto;
+  margin-top: 14px;
+}
+
+.chat-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.chat-item {
+  flex-grow: 1;
+  padding: 10px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  background: var(--bg-dark);
+  border-radius: var(--radius);
+  border: 1px solid var(--border-subtle);
+  color: var(--text);
+  transition: background 0.15s;
+}
+
+.chat-item:hover {
+  background: var(--bg-lighter);
+}
+
+.chat-item.active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: white;
+}
+
+.chat-title {
+  flex-grow: 1;
+  text-align: left;
+}
+
+.delete-chat-btn {
+  margin-left: 6px;
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  font-size: 14px;
+}
+
+.delete-chat-btn:hover {
+  color: var(--danger);
+}
+
+.sidebar-footer {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+/* ---------------- Main ---------------- */
+
+.main {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+}
+
+.main-header {
+  padding: 18px;
+  border-bottom: 1px solid var(--border);
+}
+
+.main-title {
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.main-subtitle {
+  font-size: 13px;
+  color: var(--text-subtle);
+}
+
+.messages {
+  flex-grow: 1;
+  overflow-y: auto;
+  padding: 20px;
+}
+
+/* ======================================================================
+   Bubbles
+   ====================================================================== */
+
+.bubble {
+  max-width: 75%;
+  padding: 12px 16px;
+  border-radius: var(--radius-lg);
+  margin-bottom: 14px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+}
+
+.bubble-user {
+  background: var(--primary);
+  color: white;
+  margin-left: auto;
+  border-bottom-right-radius: 4px;
+}
+
+.bubble-model {
+  background: var(--bg-lighter);
+  color: var(--text);
+  border-bottom-left-radius: 4px;
+}
+
+.bubble-meta {
+  margin-top: 5px;
+  font-size: 11px;
+  color: var(--text-subtle);
+}
+
+/* ======================================================================
+   Composer
+   ====================================================================== */
+
+.composer {
+  border-top: 1px solid var(--border);
+  padding: 12px;
+  background: var(--bg-light);
+}
+
+.composer-inner {
+  background: var(--bg-dark);
+  padding: 10px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border-subtle);
+}
+
+.composer-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+textarea {
+  flex-grow: 1;
+  height: 60px;
+  resize: none;
+}
+
+/* ======================================================================
+   Buttons
+   ====================================================================== */
+
+.btn {
+  padding: 8px 12px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--bg-lighter);
+  color: var(--text);
+  font-size: 14px;
+  transition: background 0.15s;
+}
+
+.btn:hover {
+  background: var(--bg-dark);
+}
+
+.btn-primary {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: white;
+}
+
+.btn-primary:hover {
+  background: var(--primary-hover);
+}
+
+.btn-sm {
+  padding: 4px 8px;
+  font-size: 13px;
+}
+
+/* ======================================================================
+   Modals
+   ====================================================================== */
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 7, 10, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal {
+  background: var(--bg-light);
+  padding: 20px;
+  width: 380px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+}
+
+.modal-title {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.modal-subtitle {
+  font-size: 13px;
+  color: var(--text-subtle);
+  margin-bottom: 12px;
+}
+
+.modal-field {
+  margin-bottom: 14px;
+}
+
+.modal-field input {
+  width: 100%;
+  padding: 10px;
+}
+
+.modal-footer {
+  margin-top: 10px;
+  text-align: right;
+}
+
+/* ======================================================================
+   Lock Screen
+   ====================================================================== */
+
+.lock-screen {
+  display: flex;
+  height: 100vh;
+  align-items: center;
+  justify-content: center;
+}
+
+.lock-card {
+  background: var(--bg-light);
+  padding: 30px;
+  width: 320px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  text-align: center;
+}
+
+.error-banner {
+  background: var(--danger);
+  padding: 8px;
+  border-radius: var(--radius);
+  margin-bottom: 12px;
+  font-size: 13px;
+  color: white;
+}
+
+/* ======================================================================
+   Loading Dots
+   ====================================================================== */
+
+.loading-dot {
+  width: 6px;
+  height: 6px;
+  background: var(--text-subtle);
+  border-radius: 50%;
+  display: inline-block;
+  margin: 0 2px;
+  animation: bounce 0.9s infinite;
+}
+
+.loading-dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.loading-dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes bounce {
+  0%, 60%, 100% {
+    transform: translateY(0);
+  }
+  30% {
+    transform: translateY(-4px);
+  }
+}
