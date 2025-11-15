@@ -1,40 +1,63 @@
-// ======================================================================
-//  /settings/index.js — Global settings
-//  Stores Gemini API key + PythonAnywhere key inside D1.
-// ======================================================================
+// ============================================================================
+//  /api/settings
+//  GET  - fetch global settings flags (never returns the real keys)
+//  POST - update API keys
+// ============================================================================
 
-import { requireAuth, getSetting, setSetting } from "../_utils.js";
+import {
+  createContext,
+  requireAuth,
+  sqlOne,
+  sql,
+  json,
+  error,
+} from "../../_utils.js";
 
-export async function onRequestGet(context) {
-  const { env, request } = context;
+export async function onRequestGet({ request, env }) {
+  const ctx = createContext(env);
 
-  const auth = await requireAuth(env, request);
-  if (!auth.ok) return auth.response;
+  // Auth check
+  const a = requireAuth(request, ctx);
+  if (!a.ok) return a.res;
 
-  const geminiKey = await getSetting(env, "gemini_api_key");
-  const pythonKey = await getSetting(env, "python_anywhere_key");
+  const settings = await sqlOne(
+    ctx.db,
+    `SELECT gemini_api_key, pythonanywhere_key FROM settings WHERE id = 1`
+  );
 
-  return Response.json({
-    geminiApiKeySet: !!geminiKey,
-    pythonAnywhereKeySet: !!pythonKey,
+  return json({
+    geminiApiKeySet: !!settings?.gemini_api_key,
+    pythonAnywhereKeySet: !!settings?.pythonanywhere_key,
   });
 }
 
-export async function onRequestPost(context) {
-  const { env, request } = context;
+export async function onRequestPost({ request, env }) {
+  const ctx = createContext(env);
 
-  const auth = await requireAuth(env, request);
-  if (!auth.ok) return auth.response;
+  // Auth check
+  const a = requireAuth(request, ctx);
+  if (!a.ok) return a.res;
 
-  const body = await request.json();
-
-  if (typeof body.geminiApiKey === "string" && body.geminiApiKey.trim()) {
-    await setSetting(env, "gemini_api_key", body.geminiApiKey.trim());
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return error("Invalid JSON", 400);
   }
 
-  if (typeof body.pythonAnywhereKey === "string" && body.pythonAnywhereKey.trim()) {
-    await setSetting(env, "python_anywhere_key", body.pythonAnywhereKey.trim());
-  }
+  const { geminiApiKey, pythonAnywhereKey } = body;
 
-  return Response.json({ ok: true });
+  await sql(
+    ctx.db,
+    `
+    UPDATE settings
+    SET
+      gemini_api_key = COALESCE(?, gemini_api_key),
+      pythonanywhere_key = COALESCE(?, pythonanywhere_key)
+    WHERE id = 1
+  `,
+    [geminiApiKey || null, pythonAnywhereKey || null]
+  );
+
+  return json({ ok: true });
 }
