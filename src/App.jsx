@@ -1,5 +1,6 @@
 // ======================================================================
-//  src/App.jsx — Full React UI for Cloudflare Gemini Console (FIXED)
+//  Vlad's Private AI — Full Updated React App
+//  (Dark Royal Theme, Folder Tree, API Keys, Improved Backend Integration)
 // ======================================================================
 
 import React, { useState, useEffect } from "react";
@@ -15,8 +16,18 @@ import {
   attachmentsApi,
 } from "./api.js";
 
+// Theme Colors
+const COLORS = {
+  bg: "#120016",
+  panel: "#0c0010",
+  purple: "#5A189A",
+  orange: "#FF8C00",
+  red: "#C1121F",
+  black: "#000000",
+};
+
 // ======================================================================
-//  LOADING DOTS
+//  COMPONENT: Loading Dots
 // ======================================================================
 
 function LoadingDots() {
@@ -30,15 +41,19 @@ function LoadingDots() {
 }
 
 // ======================================================================
-//  MODAL
+//  COMPONENT: Modal
 // ======================================================================
 
 function Modal({ title, subtitle, children, onClose }) {
   return (
     <div className="modal-backdrop">
-      <div className="modal">
-        <div className="modal-title">{title}</div>
-        <div className="modal-subtitle">{subtitle}</div>
+      <div className="modal" style={{ background: COLORS.panel }}>
+        <div className="modal-title" style={{ color: COLORS.orange }}>
+          {title}
+        </div>
+        <div className="modal-subtitle" style={{ color: COLORS.red }}>
+          {subtitle}
+        </div>
         {children}
         <div className="modal-footer">
           <button className="btn btn-sm" onClick={onClose}>
@@ -51,7 +66,7 @@ function Modal({ title, subtitle, children, onClose }) {
 }
 
 // ======================================================================
-//  LOCK SCREEN
+//  COMPONENT: Lock Screen
 // ======================================================================
 
 function AuthLockScreen({ onUnlock }) {
@@ -69,9 +84,14 @@ function AuthLockScreen({ onUnlock }) {
   }
 
   return (
-    <div className="lock-screen">
-      <div className="lock-card">
-        <h2 style={{ marginTop: 0 }}>🔒 Private Gemini Console</h2>
+    <div
+      className="lock-screen"
+      style={{ background: COLORS.bg, color: COLORS.orange }}
+    >
+      <div className="lock-card" style={{ background: COLORS.panel }}>
+        <h2 style={{ marginTop: 0, color: COLORS.orange }}>
+          🔒 Vlad's Private AI
+        </h2>
 
         {err && <div className="error-banner">{err}</div>}
 
@@ -81,9 +101,23 @@ function AuthLockScreen({ onUnlock }) {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && login()}
+          style={{
+            width: "100%",
+            padding: "10px",
+            borderRadius: "12px",
+            border: "1px solid var(--border-subtle)",
+            background: "#050204",
+            color: "var(--text)",
+            fontSize: "14px",
+            marginBottom: "12px",
+          }}
         />
 
-        <button className="btn btn-primary" onClick={login}>
+        <button
+          className="btn btn-primary"
+          style={{ background: COLORS.purple }}
+          onClick={login}
+        >
           Unlock
         </button>
       </div>
@@ -100,15 +134,18 @@ export default function App() {
   const [authChecked, setAuthChecked] = useState(false);
   const [authenticated, setAuthenticated] = useState(false);
 
-  // Settings
+  // Global settings
   const [settings, setSettings] = useState(null);
 
-  // Data lists
+  // Folders + Subfolders
   const [folders, setFolders] = useState([]);
-  const [chats, setChats] = useState([]);
-  const [messages, setMessages] = useState([]);
 
+  // Chats + Selected chat
+  const [chats, setChats] = useState([]);
   const [selectedChat, setSelectedChat] = useState(null);
+
+  // Messages
+  const [messages, setMessages] = useState([]);
   const [loadingMessages, setLoadingMessages] = useState(false);
 
   // Composer
@@ -120,9 +157,9 @@ export default function App() {
   const [showNewChatModal, setShowNewChatModal] = useState(false);
   const [newChatTitle, setNewChatTitle] = useState("");
 
-  // ======================================================================
+  // ====================================================================
   //  INITIAL AUTH CHECK
-  // ======================================================================
+  // ====================================================================
 
   useEffect(() => {
     async function init() {
@@ -137,9 +174,9 @@ export default function App() {
     init();
   }, []);
 
-  // ======================================================================
+  // ====================================================================
   //  LOAD INITIAL DATA
-  // ======================================================================
+  // ====================================================================
 
   async function loadInitialData() {
     try {
@@ -150,8 +187,8 @@ export default function App() {
       ]);
 
       setSettings(setData);
-      setFolders(Array.isArray(folderData) ? folderData : []);
-      setChats(Array.isArray(chatData) ? chatData : []);
+      setFolders(folderData);
+      setChats(chatData);
     } catch (err) {
       console.error("Failed loading initial data", err);
     }
@@ -161,14 +198,13 @@ export default function App() {
     if (authenticated) loadInitialData();
   }, [authenticated]);
 
-  // ======================================================================
-  //  OPEN CHAT
-  // ======================================================================
+  // ====================================================================
+  //  SELECT CHAT
+  // ====================================================================
 
   async function openChat(chat) {
     setSelectedChat(chat);
     setMessages([]);
-
     await loadMessages(chat.id);
   }
 
@@ -176,20 +212,20 @@ export default function App() {
     setLoadingMessages(true);
     try {
       const data = await messagesApi.list(chatId);
-      setMessages(Array.isArray(data) ? data : []);
+      setMessages(data);
     } finally {
       setLoadingMessages(false);
     }
   }
 
-  // ======================================================================
+  // ====================================================================
   //  SEND MESSAGE
-  // ======================================================================
+  // ====================================================================
 
   async function sendMessage() {
     if (!input.trim()) return;
-    const text = input.trim();
 
+    const text = input.trim();
     setInput("");
     setSending(true);
 
@@ -203,9 +239,9 @@ export default function App() {
     setSending(false);
   }
 
-  // ======================================================================
-  //  ATTACHMENT UPLOAD
-  // ======================================================================
+  // ====================================================================
+  //  ATTACHMENTS
+  // ====================================================================
 
   async function handleFileUpload(e) {
     const file = e.target.files[0];
@@ -219,25 +255,30 @@ export default function App() {
     }
   }
 
-  // ======================================================================
-  //  CREATE CHAT
-  // ======================================================================
+  // ====================================================================
+  //  NEW CHAT
+  // ====================================================================
 
   async function createChat() {
     try {
-      const chat = await chatsApi.create(newChatTitle || "Untitled chat");
-      setChats((prev) => [chat, ...prev]);
-      setNewChatTitle("");
+      const folderId =
+        selectedChat?.folder_id ||
+        folders[0]?.id ||
+        null;
+
+      const chat = await chatsApi.create(newChatTitle || "Untitled chat", folderId);
+      setChats([chat, ...chats]);
       setShowNewChatModal(false);
+      setNewChatTitle("");
       openChat(chat);
     } catch (err) {
       alert("Failed to create chat:\n" + err.message);
     }
   }
 
-  // ======================================================================
+  // ====================================================================
   //  SAVE SETTINGS
-  // ======================================================================
+  // ====================================================================
 
   async function saveSettings(values) {
     try {
@@ -250,18 +291,18 @@ export default function App() {
     }
   }
 
-  // ======================================================================
+  // ====================================================================
   //  LOGOUT
-  // ======================================================================
+  // ====================================================================
 
   function logout() {
     clearAuthToken();
     setAuthenticated(false);
   }
 
-  // ======================================================================
+  // ====================================================================
   //  RENDER
-  // ======================================================================
+  // ====================================================================
 
   if (!authChecked) return null;
 
@@ -270,71 +311,168 @@ export default function App() {
   }
 
   return (
-    <div className="app-shell">
+    <div className="app-shell" style={{ background: COLORS.bg, color: "#fff" }}>
       {/* SIDEBAR */}
-      <div className="sidebar">
+      <div className="sidebar" style={{ background: COLORS.panel }}>
+
         <div className="sidebar-header">
           <div className="brand">
-            <div className="brand-title">Private Gemini</div>
-            <div className="brand-subtitle">Self-Hosted Console</div>
+            <div className="brand-title" style={{ color: COLORS.orange }}>
+              Vlad's Private AI
+            </div>
+            <div className="brand-subtitle" style={{ color: COLORS.red }}>
+              Self-Hosted Console
+            </div>
           </div>
-          <div className="chip">Pro</div>
+          <div className="chip" style={{ background: COLORS.purple }}>Pro</div>
         </div>
 
+        {/* Folder Button */}
         <button
           className="btn btn-primary"
+          style={{ background: COLORS.purple }}
+          onClick={() => {
+            const name = prompt("Folder name:");
+            if (!name) return;
+            foldersApi.create(name, null).then(() => loadInitialData());
+          }}
+        >
+          + Folder
+        </button>
+
+        {/* New Chat */}
+        <button
+          className="btn btn-primary"
+          style={{ background: COLORS.orange, marginTop: "8px" }}
           onClick={() => setShowNewChatModal(true)}
         >
           + New Chat
         </button>
 
-        <div className="chat-list">
-          {Array.isArray(chats) && chats.length === 0 && (
-            <div className="chat-empty">No chats created yet</div>
-          )}
+        {/* FOLDER TREE */}
+        <div className="folder-tree">
+          {folders
+            .filter((f) => !f.parent_id)
+            .map((folder) => (
+              <div key={folder.id} className="folder-block">
 
-          {Array.isArray(chats) &&
-            chats.map((c) => (
-              <div className="chat-row" key={c.id}>
-                <button
-                  className={
-                    "chat-item " +
-                    (selectedChat?.id === c.id ? "active" : "")
-                  }
-                  onClick={() => openChat(c)}
-                >
-                  <span className="icon">💬</span>
-                  <span className="chat-title">{c.title}</span>
-                </button>
+                <div className="folder-row">
+                  <span className="folder-name">{folder.name}</span>
 
-                <button
-                  className="btn btn-sm delete-chat-btn"
-                  onClick={async () => {
-                    if (!confirm("Delete this chat?")) return;
-                    await chatsApi.delete(c.id);
-                    setChats((prev) =>
-                      prev.filter((x) => x.id !== c.id)
-                    );
-                    if (selectedChat?.id === c.id) {
-                      setSelectedChat(null);
-                      setMessages([]);
-                    }
-                  }}
-                >
-                  ✕
-                </button>
+                  <div>
+                    <button
+                      className="btn btn-sm"
+                      onClick={async () => {
+                        const newName = prompt("Rename folder:", folder.name);
+                        if (!newName) return;
+                        await foldersApi.rename(folder.id, newName);
+                        loadInitialData();
+                      }}
+                    >
+                      ✎
+                    </button>
+
+                    <button
+                      className="btn btn-sm"
+                      onClick={async () => {
+                        if (!confirm("Delete folder and all inside it?")) return;
+                        await foldersApi.delete(folder.id);
+                        loadInitialData();
+                      }}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                </div>
+
+                {/* SUBFOLDERS */}
+                <div className="subfolder-area">
+                  {folders
+                    .filter((sf) => sf.parent_id === folder.id)
+                    .map((sf) => (
+                      <div key={sf.id} className="subfolder-block">
+                        <div className="subfolder-row">
+                          📁 <span className="subfolder-name">{sf.name}</span>
+
+                          <button
+                            className="btn btn-sm"
+                            onClick={() => {
+                              const newName = prompt("Rename subfolder:", sf.name);
+                              if (!newName) return;
+                              foldersApi.rename(sf.id, newName).then(loadInitialData);
+                            }}
+                          >
+                            ✎
+                          </button>
+
+                          <button
+                            className="btn btn-sm"
+                            onClick={() => {
+                              if (confirm("Delete this subfolder?"))
+                                foldersApi.delete(sf.id).then(loadInitialData);
+                            }}
+                          >
+                            ✕
+                          </button>
+                        </div>
+
+                        {/* Chats inside subfolder */}
+                        <div className="chat-list">
+                          {chats
+                            .filter((c) => c.folder_id === sf.id)
+                            .map((c) => (
+                              <button
+                                key={c.id}
+                                className={
+                                  "chat-item " +
+                                  (selectedChat?.id === c.id ? "active" : "")
+                                }
+                                onClick={() => openChat(c)}
+                              >
+                                💬 {c.title}
+                              </button>
+                            ))}
+                        </div>
+                      </div>
+                    ))}
+
+                  {/* Chats in main folder */}
+                  <div className="chat-list">
+                    {chats
+                      .filter((c) => c.folder_id === folder.id)
+                      .map((c) => (
+                        <button
+                          key={c.id}
+                          className={
+                            "chat-item " +
+                            (selectedChat?.id === c.id ? "active" : "")
+                          }
+                          onClick={() => openChat(c)}
+                        >
+                          💬 {c.title}
+                        </button>
+                      ))}
+                  </div>
+                </div>
               </div>
             ))}
         </div>
 
+        {/* FOOTER */}
         <div className="sidebar-footer">
           <button
             className="btn btn-sm"
+            style={{ background: COLORS.black }}
             onClick={() => setShowSettingsModal(true)}
           >
             ⚙ Settings
           </button>
-          <button className="btn btn-sm" onClick={logout}>
+
+          <button
+            className="btn btn-sm"
+            style={{ background: COLORS.red }}
+            onClick={logout}
+          >
             🔒 Logout
           </button>
         </div>
@@ -342,13 +480,22 @@ export default function App() {
 
       {/* MAIN */}
       <div className="main">
+
         <div className="main-header">
           {selectedChat ? (
             <div className="main-header-titles">
               <div className="main-title">{selectedChat.title}</div>
-              <div className="main-subtitle">
-                Chat ID: {selectedChat.id}
-              </div>
+              <div className="main-subtitle">Chat ID: {selectedChat.id}</div>
+
+              {/* Chat API key */}
+              {selectedChat.chat_api_key && (
+                <div className="chat-key">
+                  API Key:
+                  <span style={{ color: COLORS.orange, marginLeft: "6px" }}>
+                    {selectedChat.chat_api_key}
+                  </span>
+                </div>
+              )}
             </div>
           ) : (
             <div className="main-title">Select a chat</div>
@@ -358,9 +505,7 @@ export default function App() {
         {/* MESSAGES */}
         <div className="messages">
           {!selectedChat && (
-            <div className="empty-state">
-              Create or select a chat from the left.
-            </div>
+            <div className="empty-state">Create or select a chat.</div>
           )}
 
           {selectedChat && loadingMessages && (
@@ -370,15 +515,12 @@ export default function App() {
           )}
 
           {selectedChat &&
-            Array.isArray(messages) &&
             messages.map((m, i) => (
               <div
                 key={i}
                 className={
                   "bubble " +
-                  (m.role === "user"
-                    ? "bubble-user"
-                    : "bubble-model")
+                  (m.role === "user" ? "bubble-user" : "bubble-model")
                 }
               >
                 {m.content}
@@ -399,9 +541,7 @@ export default function App() {
                   onChange={(e) => setInput(e.target.value)}
                   placeholder="Write a message..."
                   onKeyDown={(e) =>
-                    e.key === "Enter" &&
-                    !e.shiftKey &&
-                    sendMessage()
+                    e.key === "Enter" && !e.shiftKey && sendMessage()
                   }
                 />
 
@@ -414,9 +554,7 @@ export default function App() {
 
                 <button
                   className="btn btn-sm"
-                  onClick={() =>
-                    document.getElementById("upload-file").click()
-                  }
+                  onClick={() => document.getElementById("upload-file").click()}
                 >
                   📎
                 </button>
@@ -438,7 +576,7 @@ export default function App() {
       {showSettingsModal && (
         <Modal
           title="Settings"
-          subtitle="Global system configuration"
+          subtitle="Global configuration"
           onClose={() => setShowSettingsModal(false)}
         >
           <SettingsForm settings={settings} onSave={saveSettings} />
