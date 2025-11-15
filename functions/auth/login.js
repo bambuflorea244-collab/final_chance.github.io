@@ -1,1 +1,37 @@
-aa
+// ======================================================================
+//  /auth/login.js — Login endpoint
+//  Verifies MASTER_PASSWORD and creates a new session token.
+// ======================================================================
+
+export async function onRequestPost(context) {
+  const { env, request } = context;
+
+  try {
+    const body = await request.json();
+    const password = body?.password || "";
+
+    const expected = env.MASTER_PASSWORD;
+    if (!expected) {
+      return new Response("MASTER_PASSWORD is not set in environment", {
+        status: 500,
+      });
+    }
+
+    if (password !== expected) {
+      return new Response("Invalid password", { status: 401 });
+    }
+
+    const token = crypto.randomUUID();
+
+    await env.DB.prepare(
+      "INSERT INTO sessions (token) VALUES (?)"
+    )
+      .bind(token)
+      .run();
+
+    return Response.json({ token });
+  } catch (err) {
+    console.error("auth/login error:", err);
+    return new Response("Auth error", { status: 500 });
+  }
+}
