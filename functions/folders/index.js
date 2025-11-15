@@ -1,54 +1,67 @@
-// ======================================================================
-//  /folders/index.js — Folder listing & folder creation
-//  Supports nested folders using parent_id.
-// ======================================================================
+// ============================================================================
+//  /api/folders
+//  GET  - list folders (top-level + subfolders)
+//  POST - create folder or subfolder
+// ============================================================================
 
-import { requireAuth } from "../_utils.js";
+import {
+  createContext,
+  requireAuth,
+  sql,
+  json,
+  error,
+} from "../../_utils.js";
 
-export async function onRequestGet(context) {
-  const { env, request } = context;
+export async function onRequestGet({ request, env }) {
+  const ctx = createContext(env);
 
-  const auth = await requireAuth(env, request);
-  if (!auth.ok) return auth.response;
+  // Require Bearer auth
+  const a = requireAuth(request, ctx);
+  if (!a.ok) return a.res;
 
-  try {
-    const { results } = await env.DB.prepare(
-      "SELECT id, name, parent_id, created_at FROM folders ORDER BY created_at ASC"
-    ).all();
+  // Fetch all folders
+  const rows = await sql(
+    ctx.db,
+    `
+    SELECT id, name, parent_id, created_at
+    FROM folders
+    ORDER BY parent_id IS NOT NULL, name ASC
+    `
+  );
 
-    return Response.json(results || []);
-  } catch (err) {
-    console.error("GET /folders error:", err);
-    return new Response("Failed to load folders", { status: 500 });
-  }
+  return json(rows);
 }
 
-export async function onRequestPost(context) {
-  const { env, request } = context;
+export async function onRequestPost({ request, env }) {
+  const ctx = createContext(env);
 
-  const auth = await requireAuth(env, request);
-  if (!auth.ok) return auth.response;
+  // Require Bearer auth
+  const a = requireAuth(request, ctx);
+  if (!a.ok) return a.res;
 
+  let body;
   try {
-    const body = await request.json();
-    const name = (body.name || "").trim();
-    const parentId = body.parentId || null;
-
-    if (!name) {
-      return new Response("Folder name required", { status: 400 });
-    }
-
-    const id = crypto.randomUUID();
-
-    await env.DB.prepare(
-      "INSERT INTO folders (id, name, parent_id) VALUES (?, ?, ?)"
-    )
-      .bind(id, name, parentId)
-      .run();
-
-    return Response.json({ id, name, parent_id: parentId });
-  } catch (err) {
-    console.error("POST /folders error:", err);
-    return new Response("Failed to create folder", { status: 500 });
+    body = await request.json();
+  } catch {
+    return error("Invalid JSON", 400);
   }
+
+  const name = (body?.name || "").trim();
+  const parentId = body?.parentId ?? null;
+
+  if (!name) return error("Folder name required");
+
+  // Create folder (supports subfolder if parentId is provided)
+  const result = await sql(
+    ctx.db,
+    `
+    INSERT INTO folders (name, parent_id)
+    VALUES (?, ?)
+    `,
+    [name, parentId]
+  );
+
+  const id = result.lastInsertRowId ?? null;
+
+  return json({ id, name, parentId });
 }
