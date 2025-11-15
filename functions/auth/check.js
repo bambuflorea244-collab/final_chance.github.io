@@ -1,15 +1,15 @@
-// ======================================================================
-//  /auth/check.js — Validate session token
-//  Ensures the Authorization token is valid.
-// ======================================================================
+// ============================================================================
+//  /api/auth/check
+//  Verifies the Bearer token without returning sensitive data.
+// ============================================================================
 
-import { requireAuth } from "../_utils.js";
+import { createContext, requireAuth, json } from "../../_utils.js";
 
-export async function onRequestGet(context) {
-  const { env, request } = context;
+export async function onRequestGet({ request, env }) {
+  const ctx = createContext(env);
 
-  const auth = await requireAuth(env, request);
-  if (!auth.ok) return auth.response;
+  const a = requireAuth(request, ctx);
+  if (!a.ok) return a.res;
 
-  return Response.json({ ok: true });
+  return json({ ok: true });
 }
