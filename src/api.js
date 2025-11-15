@@ -1,5 +1,5 @@
 // ======================================================================
-//  src/api.js — Frontend API Client for Cloudflare Gemini Console
+//  src/api.js — Frontend API Client for Cloudflare Gemini Console (FIXED)
 // ======================================================================
 
 // ---------------------- TOKEN HANDLING ----------------------
@@ -50,7 +50,7 @@ async function request(method, url, data, isForm = false) {
   return resp.text();
 }
 
-// Simple HTTP helpers
+// Simple helpers
 export const api = {
   get: (url) => request("GET", url),
   post: (url, data) => request("POST", url, data),
@@ -86,12 +86,12 @@ export const settingsApi = {
 };
 
 // =====================================================================
-//  FOLDERS
+//  FOLDERS  (SAFE RETURN ARRAYS)
 // =====================================================================
 
 export const foldersApi = {
   list() {
-    return api.get("/api/folders");
+    return api.get("/api/folders").then((r) => (Array.isArray(r) ? r : []));
   },
   create(name, parentId = null) {
     return api.post("/api/folders", { name, parentId });
@@ -105,12 +105,12 @@ export const foldersApi = {
 };
 
 // =====================================================================
-//  CHATS
+//  CHATS  (SAFE RETURN ARRAYS)
 // =====================================================================
 
 export const chatsApi = {
   list() {
-    return api.get("/api/chats");
+    return api.get("/api/chats").then((r) => (Array.isArray(r) ? r : []));
   },
   create(title = "Untitled chat", folderId = null, systemPrompt = null) {
     return api.post("/api/chats", {
@@ -131,12 +131,14 @@ export const chatsApi = {
 };
 
 // =====================================================================
-//  MESSAGES
+//  MESSAGES  (SAFE RETURN ARRAYS)
 // =====================================================================
 
 export const messagesApi = {
   list(chatId) {
-    return api.get(`/api/chats/${chatId}/messages`);
+    return api
+      .get(`/api/chats/${chatId}/messages`)
+      .then((r) => (Array.isArray(r) ? r : []));
   },
   send(chatId, message) {
     return api.post(`/api/chats/${chatId}/messages`, { message });
@@ -144,12 +146,14 @@ export const messagesApi = {
 };
 
 // =====================================================================
-//  ATTACHMENTS
+//  ATTACHMENTS  (SAFE RETURN ARRAYS)
 // =====================================================================
 
 export const attachmentsApi = {
   list(chatId) {
-    return api.get(`/api/chats/${chatId}/attachments`);
+    return api
+      .get(`/api/chats/${chatId}/attachments`)
+      .then((r) => (Array.isArray(r) ? r : []));
   },
   upload(chatId, file) {
     const form = new FormData();
@@ -159,10 +163,15 @@ export const attachmentsApi = {
 };
 
 // =====================================================================
-//  EXTERNAL CHAT API (optional usage)
+//  EXTERNAL CHAT API
 // =====================================================================
 
-export async function externalChatSend(chatApiKey, chatId, message, attachments = []) {
+export async function externalChatSend(
+  chatApiKey,
+  chatId,
+  message,
+  attachments = []
+) {
   const resp = await fetch(`/api/chats/${chatId}/external`, {
     method: "POST",
     headers: {
