@@ -1,8 +1,9 @@
 // ======================================================================
-//  src/api.js — Frontend API Client for Cloudflare Gemini Console (FIXED)
+//  src/api.js — Frontend API Client for Vlad's Private AI
 // ======================================================================
 
 // ---------------------- TOKEN HANDLING ----------------------
+
 let authToken = localStorage.getItem("auth_token") || null;
 
 export function setAuthToken(token) {
@@ -16,6 +17,7 @@ export function clearAuthToken() {
 }
 
 // ---------------------- INTERNAL REQUEST WRAPPER ----------------------
+
 async function request(method, url, data, isForm = false) {
   const headers = {};
 
@@ -29,7 +31,7 @@ async function request(method, url, data, isForm = false) {
 
   const options = {
     method,
-    headers,
+    headers
   };
 
   if (method !== "GET") {
@@ -39,24 +41,30 @@ async function request(method, url, data, isForm = false) {
   const resp = await fetch(url, options);
 
   if (!resp.ok) {
-    const text = await resp.text();
-    throw new Error(text || "API Error");
+    let txt;
+    try {
+      txt = await resp.text();
+    } catch {
+      txt = "API Error";
+    }
+    throw new Error(txt || "API Error");
   }
 
-  const contentType = resp.headers.get("content-type");
-  if (contentType?.includes("application/json")) {
+  const ct = resp.headers.get("content-type");
+  if (ct?.includes("application/json")) {
     return resp.json();
   }
+
   return resp.text();
 }
 
-// Simple helpers
+// Convenience shortcuts
 export const api = {
-  get: (url) => request("GET", url),
-  post: (url, data) => request("POST", url, data),
-  patch: (url, data) => request("PATCH", url, data),
-  delete: (url) => request("DELETE", url),
-  upload: (url, formData) => request("POST", url, formData, true),
+  get: (u) => request("GET", u),
+  post: (u, d) => request("POST", u, d),
+  patch: (u, d) => request("PATCH", u, d),
+  delete: (u) => request("DELETE", u),
+  upload: (u, form) => request("POST", u, form, true),
 };
 
 // =====================================================================
@@ -69,7 +77,7 @@ export const authApi = {
   },
   check() {
     return api.get("/api/auth/check");
-  },
+  }
 };
 
 // =====================================================================
@@ -82,16 +90,16 @@ export const settingsApi = {
   },
   save(body) {
     return api.post("/api/settings", body);
-  },
+  }
 };
 
 // =====================================================================
-//  FOLDERS  (SAFE RETURN ARRAYS)
+//  FOLDERS
 // =====================================================================
 
 export const foldersApi = {
   list() {
-    return api.get("/api/folders").then((r) => (Array.isArray(r) ? r : []));
+    return api.get("/api/folders");
   },
   create(name, parentId = null) {
     return api.post("/api/folders", { name, parentId });
@@ -102,83 +110,77 @@ export const foldersApi = {
   delete(id) {
     return api.delete(`/api/folders/${id}`);
   },
+  get(id) {
+    return api.get(`/api/folders/${id}`);
+  }
 };
 
 // =====================================================================
-//  CHATS  (SAFE RETURN ARRAYS)
+//  CHATS
 // =====================================================================
 
 export const chatsApi = {
   list() {
-    return api.get("/api/chats").then((r) => (Array.isArray(r) ? r : []));
+    return api.get("/api/chats");
   },
   create(title = "Untitled chat", folderId = null, systemPrompt = null) {
     return api.post("/api/chats", {
       title,
       folderId,
-      systemPrompt,
+      systemPrompt
     });
   },
-  getSettings(id) {
-    return api.get(`/api/chats/${id}/settings`);
+  get(id) {
+    return api.get(`/api/chats/${id}`);
   },
   updateSettings(id, body) {
     return api.post(`/api/chats/${id}/settings`, body);
   },
   delete(id) {
     return api.post(`/api/chats/${id}/delete`);
-  },
+  }
 };
 
 // =====================================================================
-//  MESSAGES  (SAFE RETURN ARRAYS)
+//  MESSAGES
 // =====================================================================
 
 export const messagesApi = {
   list(chatId) {
-    return api
-      .get(`/api/chats/${chatId}/messages`)
-      .then((r) => (Array.isArray(r) ? r : []));
+    return api.get(`/api/chats/${chatId}/messages`);
   },
   send(chatId, message) {
     return api.post(`/api/chats/${chatId}/messages`, { message });
-  },
+  }
 };
 
 // =====================================================================
-//  ATTACHMENTS  (SAFE RETURN ARRAYS)
+//  ATTACHMENTS
 // =====================================================================
 
 export const attachmentsApi = {
   list(chatId) {
-    return api
-      .get(`/api/chats/${chatId}/attachments`)
-      .then((r) => (Array.isArray(r) ? r : []));
+    return api.get(`/api/chats/${chatId}/attachments`);
   },
   upload(chatId, file) {
     const form = new FormData();
     form.append("file", file);
     return api.upload(`/api/chats/${chatId}/attachments`, form);
-  },
+  }
 };
 
 // =====================================================================
-//  EXTERNAL CHAT API
+//  EXTERNAL CHAT API (per-chat API key)
 // =====================================================================
 
-export async function externalChatSend(
-  chatApiKey,
-  chatId,
-  message,
-  attachments = []
-) {
+export async function externalChatSend(chatApiKey, chatId, message, attachments = []) {
   const resp = await fetch(`/api/chats/${chatId}/external`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "X-CHAT-API-KEY": chatApiKey,
+      "X-CHAT-API-KEY": chatApiKey
     },
-    body: JSON.stringify({ message, attachments }),
+    body: JSON.stringify({ message, attachments })
   });
 
   if (!resp.ok) {
