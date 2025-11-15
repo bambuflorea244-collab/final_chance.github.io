@@ -3,12 +3,7 @@
 //  GET → Return full chat object including settings
 // ============================================================================
 
-import {
-  createContext,
-  requireAuth,
-  json,
-  error
-} from "../../../_utils.js";
+import { createContext, requireAuth, json, error } from "../../_utils.js";
 
 export async function onRequestGet({ request, env, params }) {
   const ctx = createContext(env);
