@@ -4,14 +4,7 @@
 //  POST - update API keys
 // ============================================================================
 
-import {
-  createContext,
-  requireAuth,
-  sqlOne,
-  sql,
-  json,
-  error,
-} from "../../_utils.js";
+import { createContext, requireAuth, json, error } from "../_utils.js";
 
 export async function onRequestGet({ request, env }) {
   const ctx = createContext(env);
