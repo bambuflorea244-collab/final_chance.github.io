@@ -1,5 +1,5 @@
 // ======================================================================
-//  src/App.jsx — Full React UI for Cloudflare Gemini Console
+//  src/App.jsx — Full React UI for Cloudflare Gemini Console (FIXED)
 // ======================================================================
 
 import React, { useState, useEffect } from "react";
@@ -16,7 +16,7 @@ import {
 } from "./api.js";
 
 // ======================================================================
-//  COMPONENT: Loading Dots
+//  LOADING DOTS
 // ======================================================================
 
 function LoadingDots() {
@@ -30,7 +30,7 @@ function LoadingDots() {
 }
 
 // ======================================================================
-//  COMPONENT: Modal
+//  MODAL
 // ======================================================================
 
 function Modal({ title, subtitle, children, onClose }) {
@@ -51,7 +51,7 @@ function Modal({ title, subtitle, children, onClose }) {
 }
 
 // ======================================================================
-//  COMPONENT: Lock Screen
+//  LOCK SCREEN
 // ======================================================================
 
 function AuthLockScreen({ onUnlock }) {
@@ -81,16 +81,6 @@ function AuthLockScreen({ onUnlock }) {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && login()}
-          style={{
-            width: "100%",
-            padding: "10px",
-            borderRadius: "12px",
-            border: "1px solid var(--border-subtle)",
-            background: "#050204",
-            color: "var(--text)",
-            fontSize: "14px",
-            marginBottom: "12px",
-          }}
         />
 
         <button className="btn btn-primary" onClick={login}>
@@ -110,33 +100,29 @@ export default function App() {
   const [authChecked, setAuthChecked] = useState(false);
   const [authenticated, setAuthenticated] = useState(false);
 
-  // Global settings
+  // Settings
   const [settings, setSettings] = useState(null);
 
-  // Folders
+  // Data lists
   const [folders, setFolders] = useState([]);
-
-  // Chats
   const [chats, setChats] = useState([]);
-  const [selectedChat, setSelectedChat] = useState(null);
-
-  // Messages
   const [messages, setMessages] = useState([]);
+
+  const [selectedChat, setSelectedChat] = useState(null);
   const [loadingMessages, setLoadingMessages] = useState(false);
 
   // Composer
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
-  const [attachments, setAttachments] = useState([]);
 
   // Modals
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showNewChatModal, setShowNewChatModal] = useState(false);
   const [newChatTitle, setNewChatTitle] = useState("");
 
-  // ====================================================================
+  // ======================================================================
   //  INITIAL AUTH CHECK
-  // ====================================================================
+  // ======================================================================
 
   useEffect(() => {
     async function init() {
@@ -151,9 +137,9 @@ export default function App() {
     init();
   }, []);
 
-  // ====================================================================
-  //  LOAD SETTINGS, FOLDERS & CHATS
-  // ====================================================================
+  // ======================================================================
+  //  LOAD INITIAL DATA
+  // ======================================================================
 
   async function loadInitialData() {
     try {
@@ -164,26 +150,25 @@ export default function App() {
       ]);
 
       setSettings(setData);
-      setFolders(folderData);
-      setChats(chatData);
+      setFolders(Array.isArray(folderData) ? folderData : []);
+      setChats(Array.isArray(chatData) ? chatData : []);
     } catch (err) {
       console.error("Failed loading initial data", err);
     }
   }
 
   useEffect(() => {
-    if (authenticated) {
-      loadInitialData();
-    }
+    if (authenticated) loadInitialData();
   }, [authenticated]);
 
-  // ====================================================================
-  //  SELECT CHAT — LOAD MESSAGES
-  // ====================================================================
+  // ======================================================================
+  //  OPEN CHAT
+  // ======================================================================
 
   async function openChat(chat) {
     setSelectedChat(chat);
     setMessages([]);
+
     await loadMessages(chat.id);
   }
 
@@ -191,25 +176,25 @@ export default function App() {
     setLoadingMessages(true);
     try {
       const data = await messagesApi.list(chatId);
-      setMessages(data);
+      setMessages(Array.isArray(data) ? data : []);
     } finally {
       setLoadingMessages(false);
     }
   }
 
-  // ====================================================================
+  // ======================================================================
   //  SEND MESSAGE
-  // ====================================================================
+  // ======================================================================
 
   async function sendMessage() {
     if (!input.trim()) return;
-
     const text = input.trim();
+
     setInput("");
     setSending(true);
 
     try {
-      const resp = await messagesApi.send(selectedChat.id, text);
+      await messagesApi.send(selectedChat.id, text);
       await loadMessages(selectedChat.id);
     } catch (err) {
       alert("Failed to send message:\n" + err.message);
@@ -218,9 +203,9 @@ export default function App() {
     setSending(false);
   }
 
-  // ====================================================================
-  //  ATTACHMENTS
-  // ====================================================================
+  // ======================================================================
+  //  ATTACHMENT UPLOAD
+  // ======================================================================
 
   async function handleFileUpload(e) {
     const file = e.target.files[0];
@@ -234,25 +219,25 @@ export default function App() {
     }
   }
 
-  // ====================================================================
-  //  NEW CHAT
-  // ====================================================================
+  // ======================================================================
+  //  CREATE CHAT
+  // ======================================================================
 
   async function createChat() {
     try {
       const chat = await chatsApi.create(newChatTitle || "Untitled chat");
-      setChats([chat, ...chats]);
-      setShowNewChatModal(false);
+      setChats((prev) => [chat, ...prev]);
       setNewChatTitle("");
+      setShowNewChatModal(false);
       openChat(chat);
     } catch (err) {
       alert("Failed to create chat:\n" + err.message);
     }
   }
 
-  // ====================================================================
-  //  UPDATE SETTINGS
-  // ====================================================================
+  // ======================================================================
+  //  SAVE SETTINGS
+  // ======================================================================
 
   async function saveSettings(values) {
     try {
@@ -265,18 +250,18 @@ export default function App() {
     }
   }
 
-  // ====================================================================
+  // ======================================================================
   //  LOGOUT
-  // ====================================================================
+  // ======================================================================
 
   function logout() {
     clearAuthToken();
     setAuthenticated(false);
   }
 
-  // ====================================================================
+  // ======================================================================
   //  RENDER
-  // ====================================================================
+  // ======================================================================
 
   if (!authChecked) return null;
 
@@ -304,42 +289,49 @@ export default function App() {
         </button>
 
         <div className="chat-list">
-          {chats.length === 0 && (
+          {Array.isArray(chats) && chats.length === 0 && (
             <div className="chat-empty">No chats created yet</div>
           )}
 
-          {chats.map((c) => (
-            <div className="chat-row" key={c.id}>
-              <button
-                className={
-                  "chat-item " + (selectedChat?.id === c.id ? "active" : "")
-                }
-                onClick={() => openChat(c)}
-              >
-                <span className="icon">💬</span>
-                <span className="chat-title">{c.title}</span>
-              </button>
-
-              <button
-                className="btn btn-sm delete-chat-btn"
-                onClick={async () => {
-                  if (!confirm("Delete this chat?")) return;
-                  await chatsApi.delete(c.id);
-                  setChats(chats.filter((x) => x.id !== c.id));
-                  if (selectedChat?.id === c.id) {
-                    setSelectedChat(null);
-                    setMessages([]);
+          {Array.isArray(chats) &&
+            chats.map((c) => (
+              <div className="chat-row" key={c.id}>
+                <button
+                  className={
+                    "chat-item " +
+                    (selectedChat?.id === c.id ? "active" : "")
                   }
-                }}
-              >
-                ✕
-              </button>
-            </div>
-          ))}
+                  onClick={() => openChat(c)}
+                >
+                  <span className="icon">💬</span>
+                  <span className="chat-title">{c.title}</span>
+                </button>
+
+                <button
+                  className="btn btn-sm delete-chat-btn"
+                  onClick={async () => {
+                    if (!confirm("Delete this chat?")) return;
+                    await chatsApi.delete(c.id);
+                    setChats((prev) =>
+                      prev.filter((x) => x.id !== c.id)
+                    );
+                    if (selectedChat?.id === c.id) {
+                      setSelectedChat(null);
+                      setMessages([]);
+                    }
+                  }}
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
         </div>
 
         <div className="sidebar-footer">
-          <button className="btn btn-sm" onClick={() => setShowSettingsModal(true)}>
+          <button
+            className="btn btn-sm"
+            onClick={() => setShowSettingsModal(true)}
+          >
             ⚙ Settings
           </button>
           <button className="btn btn-sm" onClick={logout}>
@@ -354,7 +346,9 @@ export default function App() {
           {selectedChat ? (
             <div className="main-header-titles">
               <div className="main-title">{selectedChat.title}</div>
-              <div className="main-subtitle">Chat ID: {selectedChat.id}</div>
+              <div className="main-subtitle">
+                Chat ID: {selectedChat.id}
+              </div>
             </div>
           ) : (
             <div className="main-title">Select a chat</div>
@@ -376,12 +370,15 @@ export default function App() {
           )}
 
           {selectedChat &&
+            Array.isArray(messages) &&
             messages.map((m, i) => (
               <div
                 key={i}
                 className={
                   "bubble " +
-                  (m.role === "user" ? "bubble-user" : "bubble-model")
+                  (m.role === "user"
+                    ? "bubble-user"
+                    : "bubble-model")
                 }
               >
                 {m.content}
@@ -401,7 +398,11 @@ export default function App() {
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   placeholder="Write a message..."
-                  onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && sendMessage()}
+                  onKeyDown={(e) =>
+                    e.key === "Enter" &&
+                    !e.shiftKey &&
+                    sendMessage()
+                  }
                 />
 
                 <input
@@ -413,7 +414,9 @@ export default function App() {
 
                 <button
                   className="btn btn-sm"
-                  onClick={() => document.getElementById("upload-file").click()}
+                  onClick={() =>
+                    document.getElementById("upload-file").click()
+                  }
                 >
                   📎
                 </button>
@@ -438,10 +441,7 @@ export default function App() {
           subtitle="Global system configuration"
           onClose={() => setShowSettingsModal(false)}
         >
-          <SettingsForm
-            settings={settings}
-            onSave={saveSettings}
-          />
+          <SettingsForm settings={settings} onSave={saveSettings} />
         </Modal>
       )}
 
@@ -493,7 +493,9 @@ function SettingsForm({ settings, onSave }) {
           value={geminiKey}
           onChange={(e) => setGeminiKey(e.target.value)}
           placeholder={
-            settings?.geminiApiKeySet ? "•••••• (already set)" : "Enter API key"
+            settings?.geminiApiKeySet
+              ? "•••••• (already set)"
+              : "Enter API key"
           }
         />
       </div>
@@ -504,7 +506,9 @@ function SettingsForm({ settings, onSave }) {
           value={pyKey}
           onChange={(e) => setPyKey(e.target.value)}
           placeholder={
-            settings?.pythonAnywhereKeySet ? "•••••• (already set)" : "Enter API key"
+            settings?.pythonAnywhereKeySet
+              ? "•••••• (already set)"
+              : "Enter API key"
           }
         />
       </div>
