@@ -31,7 +31,7 @@ async function request(method, url, data, isForm = false) {
 
   const options = {
     method,
-    headers
+    headers,
   };
 
   if (method !== "GET") {
@@ -68,16 +68,18 @@ export const api = {
 };
 
 // =====================================================================
-//  AUTH
+//  AUTH  (NO /api PREFIX)
 // =====================================================================
 
 export const authApi = {
   login(password) {
-    return api.post("/api/auth/login", { password });
+    // was: "/api/auth/login"
+    return api.post("/auth/login", { password });
   },
   check() {
-    return api.get("/api/auth/check");
-  }
+    // was: "/api/auth/check"
+    return api.get("/auth/check");
+  },
 };
 
 // =====================================================================
@@ -86,11 +88,13 @@ export const authApi = {
 
 export const settingsApi = {
   get() {
-    return api.get("/api/settings");
+    // was: "/api/settings"
+    return api.get("/settings");
   },
   save(body) {
-    return api.post("/api/settings", body);
-  }
+    // was: "/api/settings"
+    return api.post("/settings", body);
+  },
 };
 
 // =====================================================================
@@ -99,20 +103,25 @@ export const settingsApi = {
 
 export const foldersApi = {
   list() {
-    return api.get("/api/folders");
+    // was: "/api/folders"
+    return api.get("/folders");
   },
   create(name, parentId = null) {
-    return api.post("/api/folders", { name, parentId });
+    // was: "/api/folders"
+    return api.post("/folders", { name, parentId });
   },
   rename(id, name) {
-    return api.patch(`/api/folders/${id}`, { name });
+    // was: `/api/folders/${id}`
+    return api.patch(`/folders/${id}`, { name });
   },
   delete(id) {
-    return api.delete(`/api/folders/${id}`);
+    // was: `/api/folders/${id}`
+    return api.delete(`/folders/${id}`);
   },
   get(id) {
-    return api.get(`/api/folders/${id}`);
-  }
+    // was: `/api/folders/${id}`
+    return api.get(`/folders/${id}`);
+  },
 };
 
 // =====================================================================
@@ -121,24 +130,29 @@ export const foldersApi = {
 
 export const chatsApi = {
   list() {
-    return api.get("/api/chats");
+    // was: "/api/chats"
+    return api.get("/chats");
   },
   create(title = "Untitled chat", folderId = null, systemPrompt = null) {
-    return api.post("/api/chats", {
+    // was: "/api/chats"
+    return api.post("/chats", {
       title,
       folderId,
-      systemPrompt
+      systemPrompt,
     });
   },
   get(id) {
-    return api.get(`/api/chats/${id}`);
+    // was: `/api/chats/${id}`
+    return api.get(`/chats/${id}`);
   },
   updateSettings(id, body) {
-    return api.post(`/api/chats/${id}/settings`, body);
+    // was: `/api/chats/${id}/settings`
+    return api.post(`/chats/${id}/settings`, body);
   },
   delete(id) {
-    return api.post(`/api/chats/${id}/delete`);
-  }
+    // was: `/api/chats/${id}/delete`
+    return api.post(`/chats/${id}/delete`);
+  },
 };
 
 // =====================================================================
@@ -147,11 +161,13 @@ export const chatsApi = {
 
 export const messagesApi = {
   list(chatId) {
-    return api.get(`/api/chats/${chatId}/messages`);
+    // was: `/api/chats/${chatId}/messages`
+    return api.get(`/chats/${chatId}/messages`);
   },
   send(chatId, message) {
-    return api.post(`/api/chats/${chatId}/messages`, { message });
-  }
+    // was: `/api/chats/${chatId}/messages`
+    return api.post(`/chats/${chatId}/messages`, { message });
+  },
 };
 
 // =====================================================================
@@ -160,27 +176,35 @@ export const messagesApi = {
 
 export const attachmentsApi = {
   list(chatId) {
-    return api.get(`/api/chats/${chatId}/attachments`);
+    // was: `/api/chats/${chatId}/attachments`
+    return api.get(`/chats/${chatId}/attachments`);
   },
   upload(chatId, file) {
     const form = new FormData();
     form.append("file", file);
-    return api.upload(`/api/chats/${chatId}/attachments`, form);
-  }
+    // was: `/api/chats/${chatId}/attachments`
+    return api.upload(`/chats/${chatId}/attachments`, form);
+  },
 };
 
 // =====================================================================
 //  EXTERNAL CHAT API (per-chat API key)
 // =====================================================================
 
-export async function externalChatSend(chatApiKey, chatId, message, attachments = []) {
-  const resp = await fetch(`/api/chats/${chatId}/external`, {
+export async function externalChatSend(
+  chatApiKey,
+  chatId,
+  message,
+  attachments = []
+) {
+  // was: `/api/chats/${chatId}/external`
+  const resp = await fetch(`/chats/${chatId}/external`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "X-CHAT-API-KEY": chatApiKey
+      "X-CHAT-API-KEY": chatApiKey,
     },
-    body: JSON.stringify({ message, attachments })
+    body: JSON.stringify({ message, attachments }),
   });
 
   if (!resp.ok) {
