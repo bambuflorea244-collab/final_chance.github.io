@@ -102,3 +102,4 @@ export function generateKey() {
   crypto.getRandomValues(arr);
   return [...arr].map(b => b.toString(16).padStart(2, "0")).join("");
 }
+
