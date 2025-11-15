@@ -4,13 +4,7 @@
 //  POST → update system prompt OR regenerate API key
 // ============================================================================
 
-import {
-  createContext,
-  requireAuth,
-  json,
-  error,
-  readRequestBody
-} from "../../../_utils.js";
+import { createContext, requireAuth, json, error } from "../../_utils.js";
 
 // Generate secure chat API keys
 function generateChatApiKey() {
