@@ -6,13 +6,7 @@
 //  DELETE → delete folder + descendent subfolders + chats
 // ============================================================================
 
-import {
-  createContext,
-  requireAuth,
-  sql,
-  json,
-  error,
-} from "../../_utils.js";
+import { createContext, requireAuth, json, error } from "../_utils.js";
 
 export async function onRequestGet({ request, env, params }) {
   const ctx = createContext(env);
