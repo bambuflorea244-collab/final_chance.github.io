@@ -1,175 +1,160 @@
-// ======================================================================
-//  /chats/[id]/messages.js — Message listing & AI response generation
-// ======================================================================
+// ============================================================================
+//  /api/chats/:id/messages
+//  Handles retrieving + sending messages for a chat
+// ============================================================================
 
 import {
+  createContext,
   requireAuth,
-  getSetting,
-  getAttachmentsMeta,
-  arrayBufferToBase64
-} from "../../_utils.js";
+  json,
+  error,
+  getReqParam,
+  readRequestBody
+} from "../../../_utils.js";
 
-const MODEL = "gemini-2.5-flash";
+// Used for model call — Gemini 2.0 Flash
+const MODEL = "gemini-2.0-flash";
 
-// ---------------------- LOAD MESSAGES ----------------------
-async function getMessages(env, chatId, limit = 200) {
-  const { results } = await env.DB.prepare(
-    `SELECT role, content, created_at
-     FROM messages
-     WHERE chat_id=?
-     ORDER BY created_at ASC
-     LIMIT ?`
-  )
-    .bind(chatId, limit)
-    .all();
+// ============================================================================
+//  GET → List all messages in a chat
+// ============================================================================
 
-  return results || [];
-}
+export async function onRequestGet({ request, env, params }) {
+  const ctx = createContext(env);
 
-// ---------------------- GET ----------------------
-export async function onRequestGet(context) {
-  const { env, request, params } = context;
+  const a = requireAuth(request, ctx);
+  if (!a.ok) return a.res;
 
-  const auth = await requireAuth(env, request);
-  if (!auth.ok) return auth.response;
-
-  const chatId = params.id;
+  const chatId = Number(params.chatId);
+  if (!chatId) return error("Invalid chat ID", 400);
 
   try {
-    const messages = await getMessages(env, chatId);
-    return Response.json(messages);
+    const { results } = await ctx.DB.prepare(
+      `SELECT id, chat_id, role, content, created_at
+       FROM messages
+       WHERE chat_id = ?
+       ORDER BY id ASC`
+    )
+      .bind(chatId)
+      .all();
+
+    return json(results);
   } catch (err) {
-    console.error("GET /messages error:", err);
-    return new Response("Failed to load messages", { status: 500 });
+    return error("Failed loading messages: " + err.message, 500);
   }
 }
 
-// ---------------------- BUILD ATTACHMENT PARTS ----------------------
-async function buildAttachmentParts(env, chatId) {
-  const attachments = await getAttachmentsMeta(env, chatId);
-  const parts = [];
+// ============================================================================
+//  POST → Send a message (user → model) and save reply
+// ============================================================================
 
-  // Inline up to 3 images
-  const images = attachments.filter(a => a.mime_type.startsWith("image/")).slice(0, 3);
+export async function onRequestPost({ request, env, params }) {
+  const ctx = createContext(env);
+  const a = requireAuth(request, ctx);
+  if (!a.ok) return a.res;
 
-  for (const img of images) {
-    try {
-      const object = await env.FILES.get(img.r2_key);
-      if (!object) continue;
+  const chatId = Number(params.chatId);
+  if (!chatId) return error("Invalid chat ID", 400);
 
-      const buffer = await object.arrayBuffer();
-      const base64 = arrayBufferToBase64(buffer);
-
-      parts.push({
-        role: "user",
-        parts: [
-          { text: `Attached image: ${img.name}` },
-          { inlineData: { mimeType: img.mime_type, data: base64 } }
-        ]
-      });
-    } catch (err) {
-      console.error("Failed to load R2 object", img.r2_key, err);
-    }
+  let body;
+  try {
+    body = await readRequestBody(request);
+  } catch {
+    return error("Invalid JSON body", 400);
   }
 
-  // Include description of other file types
-  const others = attachments.filter(a => !a.mime_type.startsWith("image/"));
-  if (others.length) {
-    parts.push({
+  const userMessage = (body.message || "").trim();
+  if (!userMessage) return error("Message cannot be empty", 400);
+
+  // ========================================================================
+  // 1) Load system prompt + settings for this chat
+  // ========================================================================
+  const settings = await ctx.DB.prepare(
+    `SELECT api_key, system_prompt
+     FROM chat_settings
+     WHERE chat_id = ?`
+  )
+    .bind(chatId)
+    .first();
+
+  if (!settings) return error("Chat settings not found", 404);
+
+  const { api_key: apiKey, system_prompt: systemPrompt } = settings;
+
+  // ========================================================================
+  // 2) Insert USER message into DB
+  // ========================================================================
+  await ctx.DB.prepare(
+    `INSERT INTO messages (chat_id, role, content, created_at)
+     VALUES (?, 'user', ?, ?)`
+  )
+    .bind(chatId, userMessage, Date.now())
+    .run();
+
+  // ========================================================================
+  // 3) Build conversation history → model input
+  // ========================================================================
+  const { results: history } = await ctx.DB.prepare(
+    `SELECT role, content
+     FROM messages
+     WHERE chat_id = ?
+     ORDER BY id ASC`
+  )
+    .bind(chatId)
+    .all();
+
+  // ========================================================================
+  // 4) Build messages for Gemini model
+  // ========================================================================
+  const messages = [];
+
+  if (systemPrompt) {
+    messages.push({
       role: "user",
-      parts: [
-        {
-          text:
-            "Additional attached files for this chat: " +
-            others.map(a => `${a.name} (${a.mime_type})`).join(", ")
-        }
-      ]
+      content: `SYSTEM PROMPT:\n${systemPrompt}`
     });
   }
 
-  return parts;
-}
+  for (const m of history) {
+    messages.push({
+      role: m.role,
+      content: m.content
+    });
+  }
 
-// ---------------------- POST ----------------------
-export async function onRequestPost(context) {
-  const { env, request, params } = context;
+  // ========================================================================
+  // 5) Call Gemini Model via Cloudflare's AI Gateway
+  // ========================================================================
 
-  const auth = await requireAuth(env, request);
-  if (!auth.ok) return auth.response;
-
-  const chatId = params.id;
+  let aiResponseText = "";
 
   try {
-    const { message } = await request.json();
-    if (!message || typeof message !== "string") {
-      return new Response("Invalid message", { status: 400 });
+    const aiResponse = await ctx.AI.run(MODEL, {
+      messages: messages
+    });
+
+    if (!aiResponse || !aiResponse.output_text) {
+      throw new Error("Invalid model response");
     }
 
-    // Save user message
-    await env.DB.prepare(
-      "INSERT INTO messages (chat_id, role, content) VALUES (?, 'user', ?)"
-    )
-      .bind(chatId, message)
-      .run();
-
-    // Load past history
-    const history = await getMessages(env, chatId, 40);
-    const historyParts = history.map(m => ({
-      role: m.role,
-      parts: [{ text: m.content }]
-    }));
-
-    // Add attachment parts
-    const attachmentParts = await buildAttachmentParts(env, chatId);
-
-    // Add current user message
-    const contents = [
-      ...historyParts,
-      ...attachmentParts,
-      { role: "user", parts: [{ text: message }] }
-    ];
-
-    // Get Gemini API key
-    const apiKey = await getSetting(env, "gemini_api_key");
-    if (!apiKey) {
-      return new Response("Gemini API key not set", { status: 500 });
-    }
-
-    // Query Gemini
-    const aiResp = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-goog-api-key": apiKey
-        },
-        body: JSON.stringify({ model: MODEL, contents })
-      }
-    );
-
-    if (!aiResp.ok) {
-      const text = await aiResp.text();
-      console.error("Gemini API error:", text);
-      return new Response("Gemini API error", { status: 500 });
-    }
-
-    // Parse reply
-    const data = await aiResp.json();
-    const reply =
-      data?.candidates?.[0]?.content?.parts?.map(p => p.text || "").join("\n") ||
-      "[No reply]";
-
-    // Save model reply
-    await env.DB.prepare(
-      "INSERT INTO messages (chat_id, role, content) VALUES (?, 'model', ?)"
-    )
-      .bind(chatId, reply)
-      .run();
-
-    return Response.json({ reply });
+    aiResponseText = aiResponse.output_text.trim();
   } catch (err) {
-    console.error("POST /messages error:", err);
-    return new Response("Failed to send message", { status: 500 });
+    // Still save an error reply so UI shows something meaningful
+    aiResponseText = "⚠️ AI Error: " + err.message;
   }
+
+  // ========================================================================
+  // 6) Save AI message to DB
+  // ========================================================================
+  await ctx.DB.prepare(
+    `INSERT INTO messages (chat_id, role, content, created_at)
+     VALUES (?, 'assistant', ?, ?)`
+  )
+    .bind(chatId, aiResponseText, Date.now())
+    .run();
+
+  return json({
+    ok: true,
+    reply: aiResponseText
+  });
 }
