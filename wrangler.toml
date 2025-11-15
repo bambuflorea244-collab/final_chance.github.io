@@ -1,53 +1,19 @@
-# ======================================================================
-#  wrangler.toml — Cloudflare Configuration
-#  Works for Cloudflare Pages (Functions) + D1 + R2
-# ======================================================================
-
 name = "private-gemini-console"
 compatibility_date = "2024-11-01"
 
-# Cloudflare Pages build output directory
 pages_build_output_dir = "dist"
 
-# The folder containing your Pages Functions
-functions = "./functions"
-
-# ======================================================================
-#  Environment Variables
-# ======================================================================
-
-# You MUST set this in the Cloudflare Dashboard:
-#  Settings → Environment Variables
-# Example:
-#   MASTER_PASSWORD = "your_super_password"
-#
-# Do NOT set it here — never hardcode secrets in files.
-
-# ======================================================================
-#  D1 Database Binding
-# ======================================================================
-
+# ============================
+# D1 DATABASE
+# ============================
 [[d1_databases]]
 binding = "DB"
 database_name = "private_gemini_db"
-database_id = "YOUR_D1_DATABASE_ID"
+database_id = "dd9fdb8e-94e2-4a8c-b93d-fabb3b105295"   # your real ID
 
-# Note: Replace YOUR_D1_DATABASE_ID with the value from Cloudflare Dashboard.
-
-# ======================================================================
-#  R2 Bucket Binding
-# ======================================================================
-
+# ============================
+# R2 BUCKET
+# ============================
 [[r2_buckets]]
 binding = "FILES"
 bucket_name = "gemini-chat-files"
-
-# Note: Create an R2 bucket named "gemini-chat-files" in Cloudflare dashboard.
-
-# ======================================================================
-#  Compatibility Flags
-# ======================================================================
-
-# Optional, but recommended for modern APIs:
-compatibility_flags = ["nodejs_compat"]
-
