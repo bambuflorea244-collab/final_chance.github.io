@@ -4,13 +4,7 @@
 //  POST - create folder or subfolder
 // ============================================================================
 
-import {
-  createContext,
-  requireAuth,
-  sql,
-  json,
-  error,
-} from "../../_utils.js";
+import { createContext, requireAuth, json, error } from "../_utils.js";
 
 export async function onRequestGet({ request, env }) {
   const ctx = createContext(env);
