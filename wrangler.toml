@@ -1,11 +1,11 @@
 name = "private-gemini-console"
 compatibility_date = "2024-11-01"
 
+# Cloudflare Pages build output
 pages_build_output_dir = "dist"
 
-[build]
-command = "npm run build"
-functions = "functions"
+# Enable Cloudflare Pages Functions
+pages_functions_api = true
 
 # ============================
 # D1 DATABASE
