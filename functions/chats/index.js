@@ -3,7 +3,7 @@
 //  Create chat, list chats
 // ============================================================================
 
-import { createContext, requireAuth, json, error } from "../../_utils.js";
+import { createContext, requireAuth, json, error } from "../_utils.js";
 
 // Generate secure random API keys per chat
 function generateChatApiKey() {
