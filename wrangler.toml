@@ -3,13 +3,24 @@ compatibility_date = "2024-11-01"
 
 pages_build_output_dir = "dist"
 
+# =====================================
+# Functions directory (NEW - REQUIRED!)
+# =====================================
+[functions]
+directory = "functions"
+
+# =====================================
+# Node compatibility for Pages Functions
+# =====================================
+compatibility_flags = ["nodejs_compat"]
+
 # ============================
 # D1 DATABASE
 # ============================
 [[d1_databases]]
 binding = "DB"
 database_name = "private_gemini_db"
-database_id = "dd9fdb8e-94e2-4a8c-b93d-fabb3b105295"   # your real ID
+database_id = "dd9fdb8e-94e2-4a8c-b93d-fabb3b105295"
 
 # ============================
 # R2 BUCKET
