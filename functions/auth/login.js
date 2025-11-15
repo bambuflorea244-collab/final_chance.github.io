@@ -3,7 +3,7 @@
 //  Validates the master password and returns a Bearer token.
 // ============================================================================
 
-import { createContext, json, error } from "../../_utils.js";
+import { createContext, json, error } from "../_utils.js";
 
 export async function onRequestPost({ request, env }) {
   const ctx = createContext(env);
