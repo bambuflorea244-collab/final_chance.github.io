@@ -1,64 +1,89 @@
-// ======================================================================
-//  /chats/index.js — Chat listing & creation
-// ======================================================================
+// ============================================================================
+//  /api/chats
+//  Create chat, list chats
+// ============================================================================
 
-import { requireAuth } from "../_utils.js";
+import { createContext, requireAuth, json, error } from "../../_utils.js";
 
-// Generate a random API key for each chat
+// Generate secure random API keys per chat
 function generateChatApiKey() {
-  return "chat_" + crypto.randomUUID().replace(/-/g, "");
+  const rand = crypto.getRandomValues(new Uint8Array(32));
+  return [...rand].map(b => b.toString(16).padStart(2, "0")).join("");
 }
 
-// ---------------------- LIST CHATS ----------------------
-export async function onRequestGet(context) {
-  const { env, request } = context;
+// ============================================================================
+//  GET → List all chats
+// ============================================================================
 
-  const auth = await requireAuth(env, request);
-  if (!auth.ok) return auth.response;
+export async function onRequestGet({ request, env }) {
+  const ctx = createContext(env);
+  const a = requireAuth(request, ctx);
+  if (!a.ok) return a.res;
 
   try {
-    const { results } = await env.DB.prepare(
-      "SELECT id, title, folder_id, created_at FROM chats ORDER BY created_at DESC"
+    const { results } = await ctx.DB.prepare(
+      `SELECT id, title, folder_id, created_at
+       FROM chats
+       ORDER BY created_at DESC`
     ).all();
 
-    return Response.json(results || []);
+    return json(results);
   } catch (err) {
-    console.error("GET /chats error:", err);
-    return new Response("Failed to list chats", { status: 500 });
+    return error("Failed to list chats: " + err.message, 500);
   }
 }
 
-// ---------------------- CREATE CHAT ----------------------
-export async function onRequestPost(context) {
-  const { env, request } = context;
+// ============================================================================
+//  POST → Create chat
+// ============================================================================
 
-  const auth = await requireAuth(env, request);
-  if (!auth.ok) return auth.response;
+export async function onRequestPost({ request, env }) {
+  const ctx = createContext(env);
+  const auth = requireAuth(request, ctx);
+  if (!auth.ok) return auth.res;
+
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return error("Invalid JSON", 400);
+  }
+
+  const title = (body.title || "Untitled chat").trim();
+  const folderId = body.folderId ?? null;
+  const systemPrompt = body.systemPrompt || null;
+
+  const apiKey = generateChatApiKey();
+  const createdAt = Date.now();
 
   try {
-    const body = await request.json().catch(() => ({}));
-
-    const title = (body.title || "Untitled chat").trim();
-    const folderId = body.folderId || null;
-    const systemPrompt = (body.systemPrompt || "").trim() || null;
-
-    const id = crypto.randomUUID();
-    const apiKey = generateChatApiKey();
-
-    await env.DB.prepare(
-      "INSERT INTO chats (id, title, folder_id, api_key, system_prompt) VALUES (?, ?, ?, ?, ?)"
+    // Insert chat
+    const insertChat = await ctx.DB.prepare(
+      `INSERT INTO chats (title, folder_id, created_at)
+       VALUES (?, ?, ?)`
     )
-      .bind(id, title, folderId, apiKey, systemPrompt)
+      .bind(title, folderId, createdAt)
       .run();
 
-    return Response.json({
-      id,
+    const chatId = insertChat.lastInsertRowId;
+
+    // Insert chat settings (API key, system prompt)
+    await ctx.DB.prepare(
+      `INSERT INTO chat_settings (chat_id, api_key, system_prompt)
+       VALUES (?, ?, ?)`
+    )
+      .bind(chatId, apiKey, systemPrompt)
+      .run();
+
+    // Return full chat object
+    return json({
+      id: chatId,
       title,
-      folder_id: folderId,
-      api_key: apiKey,
+      folderId,
+      createdAt,
+      apiKey
     });
   } catch (err) {
-    console.error("POST /chats error:", err);
-    return new Response("Failed to create chat", { status: 500 });
+    return error("Failed to create chat: " + err.message, 500);
   }
 }
